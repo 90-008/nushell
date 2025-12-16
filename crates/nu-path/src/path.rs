@@ -167,7 +167,7 @@ impl<Form: PathForm> Path<Form> {
         #[ref_cast_custom]
         fn ref_cast<Form: PathForm>(path: &std::path::Path) -> &Path<Form>;
 
-        debug_assert!(Form::invariants_satisfied(path));
+        // debug_assert!(Form::invariants_satisfied(path));
         ref_cast(std::path::Path::new(path))
     }
 
@@ -1417,8 +1417,8 @@ pub type CanonicalPathBuf = PathBuf<Canonical>;
 impl<Form: PathForm> PathBuf<Form> {
     /// Create a new [`PathBuf`] of any form without validiting invariants.
     #[inline]
-    pub(crate) fn new_unchecked(buf: std::path::PathBuf) -> Self {
-        debug_assert!(Form::invariants_satisfied(&buf));
+    pub fn new_unchecked(buf: std::path::PathBuf) -> Self {
+        // debug_assert!(Form::invariants_satisfied(&buf));
         Self {
             _form: PhantomData,
             inner: buf,

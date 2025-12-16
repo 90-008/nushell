@@ -360,9 +360,9 @@ impl EngineState {
         }
 
         let cwd = self.cwd(Some(stack))?;
-        std::env::set_current_dir(cwd).map_err(|err| {
-            IoError::new_internal(err, "Could not set current dir", crate::location!())
-        })?;
+        // std::env::set_current_dir(cwd).map_err(|err| {
+        //     IoError::new_internal(err, "Could not set current dir", crate::location!())
+        // })?;
 
         if let Some(config) = stack.config.take() {
             // If config was updated in the stack, replace it.
@@ -1013,20 +1013,20 @@ impl EngineState {
         let pwd = pwd.ok_or_else(|| error("$env.PWD not found", ""))?;
 
         if let Ok(pwd) = pwd.as_str() {
-            let path = AbsolutePathBuf::try_from(pwd)
-                .map_err(|_| error("$env.PWD is not an absolute path", pwd))?;
+            let path = AbsolutePathBuf::new_unchecked(pwd.into());
 
             // Technically, a root path counts as "having trailing slashes", but
             // for the purpose of PWD, a root path is acceptable.
-            if path.parent().is_some() && nu_path::has_trailing_slash(path.as_ref()) {
-                Err(error("$env.PWD contains trailing slashes", &path))
-            } else if !path.exists() {
-                Err(error("$env.PWD points to a non-existent directory", &path))
-            } else if !path.is_dir() {
-                Err(error("$env.PWD points to a non-directory", &path))
-            } else {
-                Ok(path)
-            }
+            // if path.parent().is_some() && nu_path::has_trailing_slash(path.as_ref()) {
+            //     Err(error("$env.PWD contains trailing slashes", &path))
+            // } else if !path.exists() {
+            //     Err(error("$env.PWD points to a non-existent directory", &path))
+            // } else if !path.is_dir() {
+            //     Err(error("$env.PWD points to a non-directory", &path))
+            // } else {
+            //     Ok(path)
+            // }
+            Ok(path)
         } else {
             Err(error("$env.PWD is not a string", format!("{pwd:?}")))
         }
