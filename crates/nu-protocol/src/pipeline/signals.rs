@@ -6,12 +6,25 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
+pub trait Signal: Send + Sync {
+    fn set(&self, value: bool);
+    fn get(&self) -> bool;
+}
+
 /// Used to check for signals to suspend or terminate the execution of Nushell code.
 ///
 /// For now, this struct only supports interruption (ctrl+c or SIGINT).
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Signals {
-    signals: Option<Arc<AtomicBool>>,
+    signals: Option<Arc<dyn Signal>>,
+}
+
+impl std::fmt::Debug for Signals {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Signals")
+            .field("signals", &self.signals.as_ref().map(|s| s.get()))
+            .finish()
+    }
 }
 
 impl Signals {
@@ -24,7 +37,7 @@ impl Signals {
     ///
     /// Once `ctrlc` is set to `true`, [`check`](Self::check) will error
     /// and [`interrupted`](Self::interrupted) will return `true`.
-    pub fn new(ctrlc: Arc<AtomicBool>) -> Self {
+    pub fn new(ctrlc: Arc<dyn Signal>) -> Self {
         Self {
             signals: Some(ctrlc),
         }
@@ -61,7 +74,7 @@ impl Signals {
     /// Triggers an interrupt.
     pub fn trigger(&self) {
         if let Some(signals) = &self.signals {
-            signals.store(true, Ordering::Relaxed);
+            signals.set(true);
         }
     }
 
@@ -70,7 +83,7 @@ impl Signals {
     pub fn interrupted(&self) -> bool {
         self.signals
             .as_deref()
-            .is_some_and(|b| b.load(Ordering::Relaxed))
+            .is_some_and(|b| b.get())
     }
 
     pub(crate) fn is_empty(&self) -> bool {
@@ -79,8 +92,20 @@ impl Signals {
 
     pub fn reset(&self) {
         if let Some(signals) = &self.signals {
-            signals.store(false, Ordering::Relaxed);
+            signals.set(false);
         }
+    }
+}
+
+impl Signal for AtomicBool {
+    #[inline]
+    fn set(&self, value: bool) {
+        self.store(value, Ordering::Relaxed);
+    }
+
+    #[inline]
+    fn get(&self) -> bool {
+        self.load(Ordering::Relaxed)
     }
 }
 
